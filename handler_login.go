@@ -5,12 +5,11 @@ import (
 	"net/http"
 	"time"
 	"workspace/sam/Chirpy/internal/auth"
-	"workspace/sam/Chirpy/internal/database"
 
 	"github.com/google/uuid"
 )
 
-func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`
 		Email    string `json:"email"`
@@ -22,31 +21,26 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		Email     string    `json:"email"`
 	}
 	params := parameters{}
-
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		respondWithError(w, http.StatusBadRequest, "Invalid email/password", err)
 		return
 	}
-	hashedPassword, err := auth.HashPassword(params.Password)
+	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
 		return
 	}
-	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
-		Email:          params.Email,
-		HashedPassword: hashedPassword,
-	})
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
+	validation, err := auth.CheckPasswordHash(params.Password, user.HashedPassword)
+	if !validation {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
 		return
 	}
-
 	respBody := returnVals{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email:     user.Email,
 	}
+	respondWithJSON(w, http.StatusOK, respBody)
 
-	respondWithJSON(w, 201, respBody)
 }
