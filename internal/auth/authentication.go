@@ -2,8 +2,13 @@ package auth
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/alexedwards/argon2id"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 func HashPassword(password string) (string, error) {
@@ -20,4 +25,41 @@ func CheckPasswordHash(password, hash string) (bool, error) {
 		return false, fmt.Errorf("Couldn't compare password: %w", err)
 	}
 	return result, nil
+}
+
+func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		Issuer:    "chirpy-access",
+		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresIn)),
+		Subject:   userID.String(),
+	})
+	signedToken, err := token.SignedString([]byte(tokenSecret))
+	if err != nil {
+		return "", fmt.Errorf("Error signing token: %w", err)
+	}
+	return signedToken, nil
+}
+
+func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
+	registeredClaims := jwt.RegisteredClaims{}
+	_, err := jwt.ParseWithClaims(tokenString, &registeredClaims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(tokenSecret), nil
+	})
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("Error validating: %w", err)
+	}
+	id, err := uuid.Parse(registeredClaims.Subject)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("Error parsing id: %w", err)
+	}
+	return id, nil
+}
+
+func GetBearerToken(headers http.Header) (string, error) {
+	bearerToken := headers.Get("Authorization")
+	if len(bearerToken) == 0 {
+		return "", fmt.Errorf("No bearer token")
+	}
+	return strings.TrimPrefix(bearerToken, "Bearer "), nil
 }
