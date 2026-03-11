@@ -16,10 +16,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		Email    string `json:"email"`
 	}
 	type returnVals struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
+		ID          uuid.UUID `json:"id"`
+		CreatedAt   time.Time `json:"created_at"`
+		UpdatedAt   time.Time `json:"updated_at"`
+		Email       string    `json:"email"`
+		IsChirpyRed bool      `json:"is_chirpy_red"`
 	}
 	params := parameters{}
 
@@ -42,10 +43,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	}
 
 	respBody := returnVals{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
+		ID:          user.ID,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+		Email:       user.Email,
+		IsChirpyRed: user.IsChirpyRed.Bool,
 	}
 
 	respondWithJSON(w, 201, respBody)

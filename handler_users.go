@@ -16,10 +16,11 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	type returnVals struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
+		ID          uuid.UUID `json:"id"`
+		CreatedAt   time.Time `json:"created_at"`
+		UpdatedAt   time.Time `json:"updated_at"`
+		Email       string    `json:"email"`
+		IsChirpyRed bool      `json:"is_chirpy_red"`
 	}
 	params := parameters{}
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
@@ -51,10 +52,11 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respBody := returnVals{
-		ID:        id,
-		CreatedAt: updUser.CreatedAt,
-		UpdatedAt: updUser.UpdatedAt,
-		Email:     updUser.Email,
+		ID:          id,
+		CreatedAt:   updUser.CreatedAt,
+		UpdatedAt:   updUser.UpdatedAt,
+		Email:       updUser.Email,
+		IsChirpyRed: updUser.IsChirpyRed.Bool,
 	}
 	respondWithJSON(w, http.StatusOK, respBody)
 
