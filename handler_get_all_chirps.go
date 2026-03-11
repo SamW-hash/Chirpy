@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,6 +10,12 @@ import (
 
 func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
 	s := r.URL.Query().Get("author_id")
+	sortDirection := r.URL.Query().Get("sort")
+	if sortDirection == "desc" {
+		sortDirection = "desc"
+	} else {
+		sortDirection = "asc"
+	}
 	if len(s) != 0 {
 		authorID, err := uuid.Parse(s)
 		if err != nil {
@@ -23,6 +30,12 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 			Body      string    `json:"body"`
 			UserID    uuid.UUID `json:"user_id"`
 		}
+		sort.Slice(chirps, func(i, j int) bool {
+			if sortDirection == "desc" {
+				return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+			}
+			return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+		})
 		respBody := make([]chirpResponse, len(chirps))
 		for i, c := range chirps {
 			respBody[i] = chirpResponse{
@@ -40,7 +53,12 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps", err)
 	}
-
+	sort.Slice(chirps, func(i, j int) bool {
+		if sortDirection == "desc" {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		}
+		return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+	})
 	type chirpResponse struct {
 		ID        uuid.UUID `json:"id"`
 		CreatedAt time.Time `json:"created_at"`
